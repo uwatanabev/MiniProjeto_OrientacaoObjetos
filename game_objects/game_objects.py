@@ -68,6 +68,7 @@ class Cobra:
         if self.rect.center == self.jogo.comida.rect.center:
             self.jogo.comida.rect.center = self.obter_posicao_aleatoria()
             self.comprimento += 1
+            self.jogo.pontuacao += 10  # Incrementa a pontuação
 
     def verificar_auto_ataque(self):
         if len(self.segmentos) != len(set(segmento.center for segmento in self.segmentos)):
@@ -107,7 +108,19 @@ class Jogo:
         self.TAMANHO_TILE = 50
         self.tela = pg.display.set_mode([self.TAMANHO_TELA] * 2)
         self.relogio = pg.time.Clock()
+        self.pontuacao = 0  # Pontuação atual
+        self.historico_pontuacoes = []  # Histórico de pontuações
+        self.highscore = self.carregar_highscore()  # Melhor pontuação
+        self.fonte = pg.font.SysFont('Arial', 24)  # Fonte para exibir a pontuação
         self.novo_jogo()
+
+    def carregar_highscore(self):
+        try:
+            with open("historico.txt", "r") as arquivo:
+                pontuacoes = [int(linha.split(":")[-1].strip()) for linha in arquivo if "Pontuação passada" in linha]
+                return max(pontuacoes) if pontuacoes else 0
+        except FileNotFoundError:
+            return 0
 
     def desenhar_grade(self):
         [pg.draw.line(self.tela, [50] * 3, (x, 0), (x, self.TAMANHO_TELA))
@@ -115,7 +128,25 @@ class Jogo:
         [pg.draw.line(self.tela, [50] * 3, (0, y), (self.TAMANHO_TELA, y))
                                              for y in range(0, self.TAMANHO_TELA, self.TAMANHO_TILE)]
 
+    def desenhar_pontuacao(self):
+        texto_pontuacao = f"Pontos: {self.pontuacao}"
+        texto_highscore = f"Highscore: {self.highscore}"
+        texto = self.fonte.render(texto_pontuacao, True, 'white')
+        highscore = self.fonte.render(texto_highscore, True, 'yellow')
+        self.tela.blit(texto, (10, 10))
+        self.tela.blit(highscore, (10, 40))
+
+    def salvar_historico(self):
+        self.historico_pontuacoes.append(self.pontuacao)
+        if self.pontuacao > self.highscore:
+            self.highscore = self.pontuacao
+        with open("historico.txt", "a") as arquivo:
+            arquivo.write(f"Pontuação passada: {self.pontuacao}\n")
+
     def novo_jogo(self):
+        if hasattr(self, 'pontuacao'):
+            self.salvar_historico()
+        self.pontuacao = 0  # Reiniciar pontuação
         self.cobra = Cobra(self)
         self.comida = Comida(self)
 
@@ -129,12 +160,14 @@ class Jogo:
         self.desenhar_grade()
         self.comida.desenhar()
         self.cobra.desenhar()
+        self.desenhar_pontuacao()  # Exibe a pontuação na tela
 
     def verificar_evento(self):
         for evento in pg.event.get():
             if evento.type == pg.QUIT:
+                self.salvar_historico()
                 pg.quit()
-                sys.exit()  # Aqui usamos sys.exit() para encerrar o jogo
+                sys.exit()
             # controle da cobra
             self.cobra.controlar(evento)
 
