@@ -36,7 +36,7 @@ Este jogo foi desenvolvido como parte de um mini projeto, baseado no conteúdo m
 3. Baixe ou clone este repositório.
 4. Execute o arquivo principal do jogo:
    ```bash
-   python nome_do_arquivo.py
+   main.py
    ```
 
 Divirta-se jogando! 🎉
